@@ -18,6 +18,7 @@ from model.trainer import MyTrainer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, default='dataset', help='Dataset directory')
+parser.add_argument('--type', type=str, default='grained', help='classification type: grained or coarse')
 parser.add_argument('--ERNIE_dir', type=str, default='pretrained_ERNIE', help='ERNIE directory')
 parser.add_argument('--emb_dim', type=int, default=768, help='Word embedding dimension.')
 parser.add_argument('--input_dropout', type=float, default=0.4, help='input dropout rate.')
@@ -43,12 +44,19 @@ if args.cuda:
 
 # make opt
 opt = vars(args)
-label2id = constant.LABEL_TO_ID
+
+# select label2id and dataset
+if opt['type'] == 'coarse':
+    label2id = constant.COARSE_TO_ID
+    opt['data_dir'] = 'dataset_coarse'
+    opt['save_dir'] = './saved_models_coarse'
+else:
+    label2id = constant.LABEL_TO_ID
+
 opt['num_class'] = len(label2id)
 
 # print opt
 helper.print_config(opt)
-label2id = constant.LABEL_TO_ID
 id2label = dict([(v,k) for k,v in label2id.items()])
 
 # model save dir

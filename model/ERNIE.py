@@ -19,7 +19,11 @@ class BasicClassifier(nn.Module):
         # dropout
         self.input_dropout = nn.Dropout(opt['input_dropout'])
         # classifier
-        self.classifier = nn.Linear(opt['emb_dim'], len(constant.LABEL_TO_ID))
+        if opt['type'] == 'coarse':
+            label2id = constant.COARSE_TO_ID
+        else:
+            label2id = constant.LABEL_TO_ID
+        self.classifier = nn.Linear(opt['emb_dim'], len(label2id))
         
     # 0: tokens, 1: mask_s
     def forward(self, inputs):

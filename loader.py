@@ -1,7 +1,3 @@
-"""
-loader functions.
-"""
-
 import os
 import json
 import random
@@ -30,7 +26,6 @@ class DataLoader(object):
             self.label2id = constant.COARSE_TO_ID
         else:
             self.label2id = constant.LABEL_TO_ID
-
         self.tokenizer = BertTokenizer.from_pretrained(os.path.join(opt['ERNIE_dir'], 'vocab.txt'))
         data = read_tsv(filename)
         self.raw_data = data
