@@ -52,13 +52,13 @@ if opt['type'] == 'coarse':
     label2id = constant.COARSE_TO_ID
     opt['data_dir'] = 'dataset/coarse'
     opt['save_dir'] = './saved_models/coarse'
-    helper.ensure_dir(opt['pred_res_dir'], verbose=True)
 else:
     label2id = constant.LABEL_TO_ID
 
 if opt['type'] == 'multi':
     opt['save_dir'] = './saved_models/multi/'+opt['coarse_name']
     opt['num_class'] = list(constant.GRAINED_TO_COARSE.values()).count(opt['coarse_name'])  # 大类下的小类数
+    helper.ensure_dir(opt['pred_res_dir'], verbose=True)
 else:
     opt['coarse_name'] = ''
     opt['num_class'] = len(label2id)
