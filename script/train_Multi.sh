@@ -1,0 +1,15 @@
+python train.py \
+         --type multi \
+         --coarse_name 其他 \
+         --data_dir dataset \
+         --ERNIE_dir pretrained_ERNIE \
+         --emb_dim 768 \
+         --input_dropout 0.3 \
+         --lr 5e-5 \
+         --max_grad_norm 1.0 \
+         --optim adam \
+         --num_epoch 40 \
+         --batch_size 24 \
+         --log_step 20 \
+         --save_dir saved_models/multi/其他 \
+         --res_dir result/grained/其他

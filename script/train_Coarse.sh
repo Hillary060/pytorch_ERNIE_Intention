@@ -1,11 +1,14 @@
 python train.py \
-         --data_dir dataset \
+         --type coarse \
+         --data_dir dataset/coarse \
          --ERNIE_dir pretrained_ERNIE \
          --emb_dim 768 \
-         --input_dropout 0.4 \
+         --input_dropout 0.3 \
          --lr 5e-5 \
          --max_grad_norm 1.0 \
          --optim adam \
          --num_epoch 40 \
          --batch_size 24 \
-         --log_step 20
+         --log_step 20 \
+         --save_dir saved_models/coarse
+         --res_dir result/coarse/

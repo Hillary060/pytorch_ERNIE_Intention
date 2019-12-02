@@ -1,54 +1,86 @@
-import pandas as pd
 import os
 from utils import constant
 from sklearn import metrics
+import itertools
+import warnings
 
-# test labels
-test_label = pd.read_csv('dataset/test.tsv','\t',header=None)
-test_label = list(test_label[0])
+warnings.filterwarnings('ignore')
+
+grained2id = constant.LABEL_TO_ID
+# label
+labels = eval(open('result/grained/labels').read())
+
+# grained_preds
+grained_preds = eval(open('result/grained/preds').read())
 
 # combine predictions of all classifications
-res_path = './multi_test_res'
-test_pred = {}
-for coarse_name in constant.COARSE_TO_ID:
-    index_rela_path = res_path+'/index_relation_'+coarse_name
-    if os.path.exists(index_rela_path) and os.path.exists(res_path+'/pred_'+coarse_name) :
-        index_relation = eval(open(index_rela_path).read())
-        pred = eval(open(res_path+'/pred_'+coarse_name).read())
-        for k,v in index_relation.items():
-            test_pred[k] = pred[v]
+res_path = 'result/multi/'
 
-for i in range(len(test_label)):
-    if i not in test_pred:
-        test_pred[i] = -1
+# 多种大类组合的多级分类效果比较
+for_multi_list = constant.COARSE_INTO_MULTI
+all_kind = list()
+for i in range(4):
+    all_kind += list(itertools.combinations(for_multi_list, i+1))
 
-# test predictions
-test_pred = list(test_pred.values())
+# final prediction
+best_acc, best_f1 = 0 , 0
+for i,multi_list in enumerate(all_kind):
+    final_preds = grained_preds[:]
+    for i,coarse_name in enumerate(multi_list):
+        # coarse_name = '物品携带托运'
+        grained2id_in_coarse = constant.GRAINED_ID_IN_COARSE[coarse_name]
+        id2grained_in_coarse = {v:k for k,v in grained2id_in_coarse.items()}
 
-report = metrics.classification_report(test_label, test_pred, output_dict=True)
+        res_dir = os.path.join(res_path, coarse_name)
+        index_rela_path = os.path.join(res_dir, 'index_relation')
+        preds_path = os.path.join(res_dir, 'preds')
 
-acc = metrics.accuracy_score(test_label,test_pred)
-recall = metrics.recall_score(test_label, test_pred, average='macro')
-f1_score = metrics.f1_score(test_label, test_pred, average='macro')
-confusion_matrix = metrics.confusion_matrix(test_label, test_pred)
+        if os.path.exists(index_rela_path) and os.path.exists(preds_path):
+            # index[0~1500] = data index of current coarse
+            index_relation = eval(open(index_rela_path).read())
 
-# print acc f1
-print("acc:{} f1:{}".format(str(acc),str(f1_score)))
+            # test prediction in second level
+            preds = eval(open(preds_path).read())
+            for k,v in index_relation.items():
+                grained_name= id2grained_in_coarse[preds[v]]
+                final_preds[k] = grained2id[grained_name]
 
-# write report to excel
-del report["accuracy"]
-del report["macro avg"]
-del report["weighted avg"]
-report = {int(k): v for k, v in report.items()}
-id2label = dict([(v,k) for k,v in constant.LABEL_TO_ID.items()])
-new_report = dict()
-for label_id,label_name in id2label.items():
-    if label_id not in report:
-        new_report[label_name] = {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 0, }
-    else:
-        report[label_id]['coarse_name'] = constant.GRAINED_TO_COARSE[label_name]
-        new_report[label_name] = report[label_id]
+    # # report
+    # report = metrics.classification_report(labels, final_preds, output_dict=False)
+    # print(report)
 
-new_report['all'] = {'acc': str(acc), 'recall': recall, 'f1-score': f1_score, 'data_num': len(test_label), }
-df = pd.DataFrame.from_dict(new_report, orient='index')
-df.to_excel(res_path+'/multi_result.xlsx')
+    # evaluation
+    acc = metrics.accuracy_score(labels, final_preds)
+    f1_score = metrics.f1_score(labels, final_preds, average='macro')
+
+    print(str(multi_list))
+    print("acc:"+str(acc)+"\t"+"F1:"+str(f1_score))
+
+    if acc>best_acc:
+        best_acc = acc
+    if f1_score>best_f1:
+        best_f1 = f1_score
+print("best acc {} f1 {}".format(best_acc,best_f1))
+
+    # confusion_matrix = metrics.confusion_matrix(labels, final_preds)
+    #
+    # # print acc f1
+    # print("acc:{} f1:{}".format(str(acc),str(f1_score)))
+    #
+    # # write report to excel
+    # del report["accuracy"]
+    # del report["macro avg"]
+    # del report["weighted avg"]
+    # report = {int(float(k)): v for k, v in report.items()}
+    # id2label = dict([(v,k) for k,v in constant.LABEL_TO_ID.items()])
+    # new_report = dict()
+    # for label_id,label_name in id2label.items():
+    #     if label_id not in report:
+    #         new_report[label_name] = {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 0, }
+    #     else:
+    #         report[label_id]['coarse_name'] = constant.GRAINED_TO_COARSE[label_name]
+    #         new_report[label_name] = report[label_id]
+    #
+    # new_report['all'] = {'acc': str(acc), 'recall': recall, 'f1-score': f1_score, 'data_num': len(labels), }
+    # df = pd.DataFrame.from_dict(new_report, orient='index')
+    # df.to_excel(res_path+'/final_result.xlsx')

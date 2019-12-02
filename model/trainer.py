@@ -9,7 +9,8 @@ from torch.autograd import Variable
 import numpy as np
 
 from model.ERNIE import BasicClassifier
-from utils import torch_utils, constant
+from utils import torch_utils
+
 
 class Trainer(object):
     def __init__(self, opt, emb_matrix=None):
@@ -44,16 +45,26 @@ class Trainer(object):
         except BaseException:
             print("[Warning: Saving failed... continuing anyway.]")
 
+
 # 0: tokens, 1: mask_s, 2: label
-def unpack_batch(batch, cuda):
-    inputs, label = batch[0:2], batch[2]
-    if cuda:
-        inputs = [Variable(i.cuda()) for i in inputs]
-        label = Variable(label.cuda())
+def unpack_batch(batch, cuda, is_multi=False):
+    if is_multi:
+        inputs = batch[0:2]
+        if cuda:
+            inputs = [Variable(i.cuda()) for i in inputs]
+        else:
+            inputs = [Variable(i) for i in inputs]
+        return inputs
     else:
-        inputs = [Variable(i) for i in inputs]
-        label = Variable(label)
-    return inputs, label
+        inputs, label = batch[0:2], batch[2]
+        if cuda:
+            inputs = [Variable(i.cuda()) for i in inputs]
+            label = Variable(label.cuda())
+        else:
+            inputs = [Variable(i) for i in inputs]
+            label = Variable(label)
+        return inputs, label
+
 
 # 0: tokens, 1: mask_s, 2: label
 class MyTrainer(Trainer):
@@ -79,16 +90,24 @@ class MyTrainer(Trainer):
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
         
-        return loss.item(), acc
+        return loss.item(), acc, label.data.cpu().numpy().tolist()
 
-    def predict(self, batch):
-        inputs, label = unpack_batch(batch, self.opt['cuda'])
-        self.model.eval()
-        logits = self.model(inputs)
-        # loss 
-        loss = F.cross_entropy(logits, label, reduction='mean')
-        corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
-        acc = 100.0 * np.float(corrects) / label.size()[0]
-        predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
+    def predict(self, batch,only_pred=False):
+        if self.opt['type'] == 'multi' and only_pred is True:
+            # only prediction needed
+            inputs = unpack_batch(batch, self.opt['cuda'], is_multi=True)
+            self.model.eval()
+            logits = self.model(inputs)
+            predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
+            return predictions
+        else:
+            inputs, label = unpack_batch(batch, self.opt['cuda'])
+            self.model.eval()
+            logits = self.model(inputs)
+            # loss
+            loss = F.cross_entropy(logits, label, reduction='mean')
+            corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
+            acc = 100.0 * np.float(corrects) / label.size()[0]
+            predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
 
-        return loss.item(), acc, predictions, label.data.cpu().numpy().tolist()
+            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist()
