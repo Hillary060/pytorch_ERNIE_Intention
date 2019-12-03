@@ -46,24 +46,16 @@ class Trainer(object):
             print("[Warning: Saving failed... continuing anyway.]")
 
 
-# 0: tokens, 1: mask_s, 2: label
-def unpack_batch(batch, cuda, is_multi=False):
-    if is_multi:
-        inputs = batch[0:2]
-        if cuda:
-            inputs = [Variable(i.cuda()) for i in inputs]
-        else:
-            inputs = [Variable(i) for i in inputs]
-        return inputs
+# 0: tokens, 1: mask_s, 2: label 3: data_id
+def unpack_batch(batch, cuda):
+    inputs, label, data_id = batch[0:2], batch[2], batch[3]
+    if cuda:
+        inputs = [Variable(i.cuda()) for i in inputs]
+        label = Variable(label.cuda())
     else:
-        inputs, label = batch[0:2], batch[2]
-        if cuda:
-            inputs = [Variable(i.cuda()) for i in inputs]
-            label = Variable(label.cuda())
-        else:
-            inputs = [Variable(i) for i in inputs]
-            label = Variable(label)
-        return inputs, label
+        inputs = [Variable(i) for i in inputs]
+        label = Variable(label)
+    return inputs, label, data_id
 
 
 # 0: tokens, 1: mask_s, 2: label
@@ -77,7 +69,7 @@ class MyTrainer(Trainer):
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
     def update(self, batch):
-        inputs, label = unpack_batch(batch, self.opt['cuda'])
+        inputs, label, _ = unpack_batch(batch, self.opt['cuda'])
         # forward
         self.model.train()
         self.optimizer.zero_grad()
@@ -95,13 +87,13 @@ class MyTrainer(Trainer):
     def predict(self, batch,only_pred=False):
         if self.opt['type'] == 'multi' and only_pred is True:
             # only prediction needed
-            inputs = unpack_batch(batch, self.opt['cuda'], is_multi=True)
+            inputs = unpack_batch(batch, self.opt['cuda'])
             self.model.eval()
             logits = self.model(inputs)
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
             return predictions
         else:
-            inputs, label = unpack_batch(batch, self.opt['cuda'])
+            inputs, label, data_id = unpack_batch(batch, self.opt['cuda'])
             self.model.eval()
             logits = self.model(inputs)
             # loss
@@ -109,5 +101,8 @@ class MyTrainer(Trainer):
             corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
             acc = 100.0 * np.float(corrects) / label.size()[0]
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
-
-            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist()
+            print('data_id:'+str(data_id))
+            print('labels:'+str(label.data.cpu().numpy().tolist()))
+            print("preds:"+str(predictions))
+            print("\n")
+            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id

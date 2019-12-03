@@ -17,8 +17,8 @@ from data.loader import DataLoader,get_current_label2id,split_dataset
 from model.trainer import MyTrainer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='dataset/multi/旅豆', help='grained:dataset, coarse:dataset/coarse, multi:dataset/multi/coarse_name')
-parser.add_argument('--type', type=str, default='multi', help='classification type: grained，coarse')
+parser.add_argument('--data_dir', type=str, default='dataset', help='grained:dataset, coarse:dataset/coarse, multi:dataset/multi/coarse_name')
+parser.add_argument('--type', type=str, default='grained', help='classification type: grained，coarse')
 parser.add_argument('--coarse_name', type=str, default='旅豆', help='Applies to multi classification')
 parser.add_argument('--ERNIE_dir', type=str, default='pretrained_ERNIE', help='ERNIE directory')
 parser.add_argument('--emb_dim', type=int, default=768, help='Word embedding dimension.')
@@ -30,8 +30,8 @@ parser.add_argument('--num_epoch', type=int, default=40, help='Number of total t
 parser.add_argument('--batch_size', type=int, default=24, help='Training batch size.')
 parser.add_argument('--log_step', type=int, default=40, help='Print log every k steps.')
 parser.add_argument('--log', type=str, default='logs.txt', help='Write training log to file.')
-parser.add_argument('--save_dir', type=str, default='./saved_models/multi', help='Root dir for saving models.')
-parser.add_argument('--res_dir', type=str, default='./result/multi/旅豆.', help='save best prediction to this file')
+parser.add_argument('--save_dir', type=str, default='./saved_models/grained', help='Root dir for saving models.')
+parser.add_argument('--res_dir', type=str, default='./result/grained.', help='save best prediction to this file')
 
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
@@ -98,15 +98,16 @@ for epoch in range(1, args.num_epoch+1):
             print("train_loss: {}, train_acc: {}".format(train_loss/train_step, train_acc/train_step))
 
     print("Evaluating on test set...")
-    predictions, labels = [], []
+    predictions, labels, data_ids = [], [], []
     test_loss, test_acc, test_step = 0., 0., 0
     for i, batch in enumerate(test_batch):
-        loss, acc, pred, label = trainer.predict(batch)
+        loss, acc, pred, label, data_id = trainer.predict(batch)
         test_loss += loss
         test_acc += acc
         predictions += pred
         labels += label
         test_step += 1
+        data_ids += data_id
 
     if opt['type'] == 'multi' and test_step == 0:
         print(opt['coarse_name'] + "类下无测试数据")
@@ -143,15 +144,19 @@ for epoch in range(1, args.num_epoch+1):
                                 f1_score))
 
         if opt['type'] != 'multi':
-            # save preds and corresponding labels
+            # save preds and corresponding labels,data id order
             pred_save_path = os.path.join(opt['res_dir'], 'preds')
             label_save_path = os.path.join(opt['res_dir'], 'labels')
+            data_id_save_path = os.path.join(opt['res_dir'], 'data_ids')
             with open(pred_save_path, 'w') as f:
                 f.write(str(predictions))
                 print("Best prediction saved to file {}".format(pred_save_path))
             with open(label_save_path, 'w') as f:
                 f.write(str(labels))
                 print("corresponding labels saved to file {}".format(label_save_path))
+            with open(data_id_save_path, 'w') as f:
+                f.write(str(data_ids))
+                print("corresponding data id order saved to file {}".format(data_id_save_path))
 
     test_acc_history.append(test_acc/test_step)
     f1_score_history.append(f1_score)

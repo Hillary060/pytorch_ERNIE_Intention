@@ -13,10 +13,12 @@ import pandas as pd
 def read_tsv(filename):
     '''Load data from .tsv file'''
     tmp_list = []
+    data_id = 0
     with open(filename, 'r') as of:
         for line in of.readlines():
             line = line.rstrip('\n').split('\t')
-            tmp_list.append({'text_a': line[1], 'label': int(line[0])})
+            tmp_list.append({'text_a': line[1], 'label': int(line[0]),'data_id':data_id})
+            data_id +=1
     return tmp_list
 
 
@@ -175,7 +177,7 @@ class DataLoader(object):
             # mask for real length
             mask_s = [1 for i in range(l)]
 
-            processed += [(tokens, mask_s, d['label'])]
+            processed += [(tokens, mask_s, d['label'], d['data_id'])]
         return processed
 
     def __len__(self):
@@ -194,8 +196,9 @@ class DataLoader(object):
         assert len(batch) == 3
 
         # sort all fields by lens for easy RNN operations
-        # lens = [len(x) for x in batch[0]]
-        # batch, _ = sort_all(batch, lens)
+        if self.opt['type'] == 'grained':
+            lens = [len(x) for x in batch[0]]
+            batch, _ = sort_all(batch, lens)
 
         # convert to tensors
         tokens = get_long_tensor(batch[0], batch_size)
