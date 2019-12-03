@@ -183,7 +183,7 @@ class DataLoader(object):
     def __len__(self):
         return len(self.data)
 
-    # 0: tokens, 1: mask_s, 2: label
+    # 0: tokens, 1: mask_s, 2: label 3: data_id
     def __getitem__(self, key):
         """ Get a batch with index. """
         if not isinstance(key, int):
@@ -193,7 +193,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 3
+        assert len(batch) == 4
 
         # sort all fields by lens for easy RNN operations
         if self.opt['type'] == 'grained':
@@ -204,8 +204,9 @@ class DataLoader(object):
         tokens = get_long_tensor(batch[0], batch_size)
         mask_s = get_float_tensor(batch[1], batch_size)
         label = torch.LongTensor(batch[2])
+        data_id = torch.LongTensor(batch[3])
 
-        return (tokens, mask_s, label)
+        return (tokens, mask_s, label, data_id)
 
     def __iter__(self):
         for i in range(self.__len__()):
