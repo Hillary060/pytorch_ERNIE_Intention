@@ -52,9 +52,11 @@ def unpack_batch(batch, cuda):
     if cuda:
         inputs = [Variable(i.cuda()) for i in inputs]
         label = Variable(label.cuda())
+        data_id = Variable(data_id.cuda())
     else:
         inputs = [Variable(i) for i in inputs]
         label = Variable(label)
+        data_id = Variable(data_id)
     return inputs, label, data_id
 
 
@@ -101,4 +103,4 @@ class MyTrainer(Trainer):
             corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
             acc = 100.0 * np.float(corrects) / label.size()[0]
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
-            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id
+            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id.data.cpu().numpy().tolist()
