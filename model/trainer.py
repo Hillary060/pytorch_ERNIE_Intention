@@ -101,8 +101,4 @@ class MyTrainer(Trainer):
             corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
             acc = 100.0 * np.float(corrects) / label.size()[0]
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
-            print('data_id:'+str(data_id))
-            print('labels:'+str(label.data.cpu().numpy().tolist()))
-            print("preds:"+str(predictions))
-            print("\n")
             return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id

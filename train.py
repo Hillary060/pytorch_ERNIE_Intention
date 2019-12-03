@@ -147,16 +147,25 @@ for epoch in range(1, args.num_epoch+1):
             # save preds and corresponding labels,data id order
             pred_save_path = os.path.join(opt['res_dir'], 'preds')
             label_save_path = os.path.join(opt['res_dir'], 'labels')
-            data_id_save_path = os.path.join(opt['res_dir'], 'data_ids')
+            # data_id_save_path = os.path.join(opt['res_dir'], 'data_ids')
+
+            # resort the prediction and labels into origin order
+            preds_resort, labels_resort = {}, {}
+            for index,data_id in enumerate(data_ids):
+                preds_resort[data_id] = predictions[index]
+                labels_resort[data_id] = labels[index]
+
+            tmp = sorted({v:k for k,v in preds_resort.items()}.items() ,key= lambda item:item[0])
+            preds_resort = [p[1] for j,p in enumerate((tmp))]
+            tmp = sorted({v:k for k,v in labels_resort.items()}.items() ,key= lambda item:item[0])
+            labels_resort = [p[1] for j,p in enumerate((tmp))]
+
             with open(pred_save_path, 'w') as f:
-                f.write(str(predictions))
-                print("Best prediction saved to file {}".format(pred_save_path))
+                f.write(str(preds_resort))
+                print("Best prediction resorted into origin sort, and saved to file {}".format(pred_save_path))
             with open(label_save_path, 'w') as f:
-                f.write(str(labels))
+                f.write(str(labels_resort))
                 print("corresponding labels saved to file {}".format(label_save_path))
-            with open(data_id_save_path, 'w') as f:
-                f.write(str(data_ids))
-                print("corresponding data id order saved to file {}".format(data_id_save_path))
 
     test_acc_history.append(test_acc/test_step)
     f1_score_history.append(f1_score)
