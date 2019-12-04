@@ -17,7 +17,7 @@ def read_tsv(filename):
     with open(filename, 'r') as of:
         for line in of.readlines():
             line = line.rstrip('\n').split('\t')
-            tmp_list.append({'text_a': line[1], 'label': int(line[0]),'data_id':data_id})
+            tmp_list.append({'text_a': line[1], 'label': int(line[0]),'data_id':int(data_id)})
             data_id +=1
     return tmp_list
 
@@ -35,6 +35,7 @@ def filter_data(data, opt, is_multi_eval=False):
     if opt['type'] == 'multi' and opt['coarse_name'] is not None:
         if is_multi_eval is True:
             for i, item in enumerate(data):
+                # transfer grained id into the grained id in current coarse
                 grained_name = id2label[item['label']]
                 item_coarse_name = constant.GRAINED_TO_COARSE[grained_name]
                 grained_id_in_coarse = constant.GRAINED_ID_IN_COARSE[item_coarse_name][grained_name]
@@ -196,9 +197,8 @@ class DataLoader(object):
         assert len(batch) == 4
 
         # sort all fields by lens for easy RNN operations
-        if self.opt['type'] == 'grained':
-            lens = [len(x) for x in batch[0]]
-            batch, _ = sort_all(batch, lens)
+        lens = [len(x) for x in batch[0]]
+        batch, _ = sort_all(batch, lens)
 
         # convert to tensors
         tokens = get_long_tensor(batch[0], batch_size)

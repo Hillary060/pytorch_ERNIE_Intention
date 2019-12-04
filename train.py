@@ -144,10 +144,9 @@ for epoch in range(1, args.num_epoch+1):
                                 f1_score))
 
         if opt['type'] != 'multi':
-            # save preds and corresponding labels,data id order
+            # save preds and corresponding labels
             pred_save_path = os.path.join(opt['res_dir'], 'preds')
             label_save_path = os.path.join(opt['res_dir'], 'labels')
-            # data_id_save_path = os.path.join(opt['res_dir'], 'data_ids')
 
             # resort the prediction and labels into origin order
             preds_resort, labels_resort = {}, {}

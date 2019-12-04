@@ -89,11 +89,11 @@ class MyTrainer(Trainer):
     def predict(self, batch,only_pred=False):
         if self.opt['type'] == 'multi' and only_pred is True:
             # only prediction needed
-            inputs = unpack_batch(batch, self.opt['cuda'])
+            inputs, _, data_id = unpack_batch(batch, self.opt['cuda'])
             self.model.eval()
             logits = self.model(inputs)
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
-            return predictions
+            return predictions, data_id.data.cpu().numpy().tolist()
         else:
             inputs, label, data_id = unpack_batch(batch, self.opt['cuda'])
             self.model.eval()
