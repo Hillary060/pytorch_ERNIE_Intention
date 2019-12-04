@@ -51,7 +51,7 @@ def filter_data(data, opt, is_multi_eval=False):
 
                 # replace label id
                 if item_coarse_name == opt['coarse_name']:
-                    tmp_list.append({'text_a': item['text_a'], 'label': grained_id_in_coarse})
+                    tmp_list.append({'text_a': item['text_a'], 'label': grained_id_in_coarse, 'data_id': item['data_id']})
             return tmp_list
 
     return data
