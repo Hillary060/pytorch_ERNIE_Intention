@@ -156,7 +156,7 @@ for epoch in range(1, args.num_epoch+1):
                 labels_resort[data_id] = labels[index]
             tmp = sorted(preds_resort.items() ,key= lambda item:item[0])
             preds_resort = [p[1] for j,p in enumerate((tmp))]
-            tmp = sorted({v:k for k,v in labels_resort.items()}.items() ,key= lambda item:item[0])
+            tmp = sorted(labels_resort.items(),key= lambda item:item[0])
             labels_resort = [p[1] for j,p in enumerate((tmp))]
 
             with open(pred_save_path, 'w') as f:
