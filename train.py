@@ -17,9 +17,9 @@ from data.loader import DataLoader,get_current_label2id,split_dataset
 from model.trainer import MyTrainer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='dataset', help='grained:dataset, coarse:dataset/coarse, multi:dataset/multi/coarse_name')
+parser.add_argument('--data_dir', type=str, default='dataset/', help='grained:dataset, coarse:dataset/coarse, multi:dataset/multi/coarse_name')
 parser.add_argument('--type', type=str, default='grained', help='classification type: grained，coarse')
-parser.add_argument('--coarse_name', type=str, default='旅豆', help='Applies to multi classification')
+parser.add_argument('--coarse_name', type=str, default='其他', help='Applies to multi classification')
 parser.add_argument('--ERNIE_dir', type=str, default='pretrained_ERNIE', help='ERNIE directory')
 parser.add_argument('--emb_dim', type=int, default=768, help='Word embedding dimension.')
 parser.add_argument('--input_dropout', type=float, default=0.4, help='input dropout rate.')
@@ -67,7 +67,7 @@ helper.ensure_dir(opt['save_dir'], verbose=True)
 helper.ensure_dir(opt['res_dir'], verbose=True)
 
 # save config
-helper.save_config(opt, opt['save_dir'] + '/config.json', verbose=True)
+helper.save_config(opt, os.path.join(opt['save_dir'], 'config.json'), verbose=True)
 file_logger = helper.FileLogger(opt['save_dir'] + '/' + opt['log'], header="# epoch\ttrain_loss\tdev_loss\ttrain_ACC\ttest_ACC\tF1")
 
 # load data
@@ -77,8 +77,8 @@ if opt['type'] == 'multi':
     helper.ensure_dir(split_save_dir)
     split_dataset(data_path=os.path.join('dataset/train.tsv'), split_save_dir=split_save_dir, coarse_name=opt['coarse_name'])
 print("Loading data from {} with batch size {} ...".format(opt['data_dir'], opt['batch_size']))
-train_batch = DataLoader(opt['data_dir'] + '/train.tsv', opt['batch_size'], opt)
-test_batch = DataLoader(opt['data_dir'] + '/test.tsv', opt['batch_size'], opt)
+train_batch = DataLoader(os.path.join(opt['data_dir'], 'train.tsv'), opt['batch_size'], opt)
+test_batch = DataLoader(os.path.join(opt['data_dir'], 'test.tsv'), opt['batch_size'], opt)
 
 
 # build model
@@ -99,16 +99,17 @@ for epoch in range(1, args.num_epoch+1):
 
     print("Evaluating on test set...")
     predictions, labels, data_ids = [], [], []
+    preds_top5 = []
     test_loss, test_acc, test_step = 0., 0., 0
     for i, batch in enumerate(test_batch):
-        loss, acc, pred, label, data_id = trainer.predict(batch)
+        loss, acc, pred, label, data_id, pred_top5 = trainer.predict(batch)
         test_loss += loss
         test_acc += acc
         predictions += pred
         labels += label
+        preds_top5 += pred_top5
         test_step += 1
         data_ids += data_id
-
     if opt['type'] == 'multi' and test_step == 0:
         print(opt['coarse_name'] + "类下无测试数据")
         break
@@ -164,6 +165,18 @@ for epoch in range(1, args.num_epoch+1):
             with open(label_save_path, 'w') as f:
                 f.write(str(labels_resort))
                 print("corresponding labels saved to file {}".format(label_save_path))
+
+            # save top5 predictions for every text
+            preds_top5_resort = {}
+            for index,data_id in enumerate(data_ids):
+                preds_top5_resort[data_id] = preds_top5[index]
+            tmp = sorted(preds_top5_resort.items(), key=lambda item: item[0])
+            pred_top5_resort = [p[1] for j, p in enumerate((tmp))]
+
+            pred_top5_save_path = os.path.join(opt['res_dir'], 'preds_top5')
+            with open(pred_top5_save_path, 'w') as f:
+                f.write(str(pred_top5_resort))
+                print("top5 prediction for every text, saved to file {}".format(pred_save_path))
 
     test_acc_history.append(test_acc/test_step)
     f1_score_history.append(f1_score)

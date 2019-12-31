@@ -63,7 +63,7 @@ def unpack_batch(batch, cuda):
 # 0: tokens, 1: mask_s, 2: label
 class MyTrainer(Trainer):
     def __init__(self, opt):
-        self.opt = opt
+        self.opt = opt  # opt: batch[0:2]
         self.model = BasicClassifier(opt)
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
         if opt['cuda']:
@@ -95,7 +95,7 @@ class MyTrainer(Trainer):
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
             return predictions, data_id.data.cpu().numpy().tolist()
         else:
-            inputs, label, data_id = unpack_batch(batch, self.opt['cuda'])
+            inputs, label, data_id = unpack_batch(batch, self.opt['cuda'])  # inputs = batch[0:2]
             self.model.eval()
             logits = self.model(inputs)
             # loss
@@ -103,4 +103,12 @@ class MyTrainer(Trainer):
             corrects = (torch.max(logits, 1)[1].view(label.size()).data == label.data).sum()
             acc = 100.0 * np.float(corrects) / label.size()[0]
             predictions = np.argmax(logits.data.cpu().numpy(), axis=1).tolist()
-            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id.data.cpu().numpy().tolist()
+
+            pred_complete = logits.data.cpu().numpy()
+            preds_top5 = []
+            for i in range(len(pred_complete)):
+                pred_temp = [[j, item] for j, item in enumerate(pred_complete[i])]  # [label,logits]
+                pred_temp.sort(key=lambda x: x[1], reverse=True)
+                pred_top5 = pred_temp[0:5]
+                preds_top5.append(pred_top5)
+            return loss.item(), acc, predictions, label.data.cpu().numpy().tolist(), data_id.data.cpu().numpy().tolist(), preds_top5
